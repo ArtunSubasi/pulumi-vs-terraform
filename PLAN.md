@@ -66,19 +66,15 @@ NN-topic/
 | 11 | **Refactoring** | `moved` blocks vs. Pulumi `aliases`. `import` blocks vs. `pulumi import` |
 | 12 | **Pulumi ESC / Automation API** | Only if Pulumi Cloud is acceptable — environments + secrets as a service. Automation API = IaC embedded in a program |
 
-## OpenTofu "good to know" (to verify per showcase while building)
+## OpenTofu "good to know" (verified, see [`docs/feature-claims.md`](docs/feature-claims.md))
 
 | Showcase | OpenTofu difference |
 |---|---|
-| 01 | `tofu init`, OpenTofu registry, `.tofu` file extension overrides `.tf` |
-| 03 / 06 / 08 | **Client-side state & plan encryption** (since 1.7) — closes the "secrets in plain-text state" gap that Pulumi already covers |
-| 04 | Provider `for_each` (1.9), `-exclude` flag (1.9), `enabled` meta-argument (verify version) |
-| 05 / 08 | Early variable evaluation: variables in `backend` blocks and module `source` (1.8) — makes per-environment backends simpler |
-| 07 | `tofu test` with mocks — compare feature parity with `terraform test` |
-
-To check: Terraform 1.17 may have closed some of these gaps. Each claim will be
-verified against the installed versions (Terraform 1.17.0, OpenTofu 1.13.2,
-Pulumi 3.271.0) before it goes into a README.
+| 01 | `tofu init` uses `registry.opentofu.org` (different lock file entries). `main.tofu` overrides `main.tf` (1.8) |
+| 03 / 06 / 08 | **Client-side state & plan encryption** (1.7). Terraform 1.17 has none. Example: `06-secrets/opentofu` |
+| 04 | Provider `for_each` (1.9), `-exclude` (1.9), `lifecycle { enabled = … }` (1.11) — none of them in Terraform 1.17 |
+| 05 / 08 | Variables in `backend` blocks (1.8; Terraform 1.17: no). Module `source` variables: Tofu 1.8, Terraform 1.15+ only with `const = true` |
+| 07 | `tofu test` runs `07-testing`'s tests unchanged, 4/4 |
 
 ## Decisions log
 
@@ -109,118 +105,87 @@ Pulumi 3.271.0) before it goes into a README.
 
 - [x] Plan agreed (this file)
 - [x] Open questions answered
-- [ ] **Blocked:** sandbox egress proxy filters the Terraform/OpenTofu registries and Pulumi plugin downloads (see below)
-- [ ] Repo skeleton, Makefile, `CHEATSHEET.md`
-- [ ] Showcases 01–07 (final + live), verified offline
+- [x] Sandbox egress allowlist fixed (2026-10-22): Terraform + OpenTofu registries, `releases.hashicorp.com`,
+      `get.pulumi.com` and `api.pulumi.com` all work now
+- [x] Repo skeleton: `.gitignore`, `README.md`, `Makefile`, `scripts/` (`prep`, `reset`, `check`, `diff`, `env.sh`), `CHEATSHEET.md`
+- [x] Showcases 01–07 (final + live), verified offline: `reset → prep → check` passes for every `final/`
+      (apply, idempotency re-plan/preview, `terraform test` / vitest, destroy), on Terraform 1.17.0,
+      OpenTofu 1.13.2 (06 encryption example) and Pulumi 3.271.0
+- [x] OpenTofu/Terraform claims verified → [`docs/feature-claims.md`](docs/feature-claims.md)
+- [ ] Rehearsal on the speaker's laptop (`make reset-live prep check`, then a dry run with the live/ dirs)
 - [ ] Backup blocks 09–11 (offline-capable parts)
 - [ ] Phase 2: switch hello-world/state/secrets/backends to real AWS
-
-## Sandbox blockers
-
-The agent sandbox's egress proxy currently rejects these hosts (`Filtered` / HTTP 403),
-so providers and plugins can't be installed and nothing can be verified yet:
-
-- `registry.terraform.io`: Terraform provider registry
-- `releases.hashicorp.com`: `hashicorp/*` provider binaries
-- `registry.opentofu.org`: OpenTofu provider registry
-- `get.pulumi.com`: Pulumi resource plugin binaries
-- `api.pulumi.com`: Pulumi template listing for `pulumi new <name>`. Optional: `pulumi new https://github.com/pulumi/templates/tree/master/typescript` works without it
 
 ## Handover notes (for the next session)
 
 ### Environment facts (verified 2026-10-22)
 
 - Sandbox: Terraform 1.17.0, OpenTofu 1.13.2, Pulumi 3.271.0, Node v24.22.1, npm 11.19.1, linux_arm64.
-- The memory limit is 8 GiB (cgroup). `/workspace` is on disk. `$PULUMI_HOME=/workspace/.af-deps/pulumi`,
+  Memory limit 8 GiB (cgroup). `/workspace` is on disk (virtiofs). `$PULUMI_HOME=/workspace/.af-deps/pulumi`,
   `$TMPDIR=/workspace/.af-tmp`. LocalStack (fallback only) is at `host.containers.internal:4566`.
-- Egress: npm and github.com work. The registries listed under "Sandbox blockers" were blocked. The operator
-  was asked to add them to `policies/network-allowlist.conf` (tinyproxy filter, one host pattern per line).
-  **First step of the next session:** re-test with
-  `terraform init` on a scratch project using `hashicorp/random`, and `pulumi plugin install resource random`.
-  If a download redirects to another blocked host, report that exact hostname and wait. Don't work around the proxy.
-- `pulumi new typescript` (by name) needs `api.pulumi.com`. The GitHub URL form works already:
-  `pulumi new https://github.com/pulumi/templates/tree/master/typescript --name <n> --generate-only --yes`.
-  It generates `Pulumi.yaml` (runtime nodejs, packagemanager npm), `package.json` (`@pulumi/pulumi`,
-  `typescript`, `@types/node`), `tsconfig.json` (strict, nodenext), `index.ts`, `.gitignore` (`/bin/`, `/node_modules/`).
-  On the speaker's laptop the short form should work. `--offline` uses cached templates (for `prep.sh`).
-- The repo has only `README.md` (empty) and `PLAN.md`. Branch `agent/initial-setup`. Nothing committed beyond
-  the initial commit. Pushing is disabled, and the operator merges on the host.
+- Egress: everything needed so far works (registries, provider downloads, Pulumi plugins + templates, npm, GitHub,
+  raw.githubusercontent.com).
+- **Sandbox quirk — Pulumi needs `TMPDIR=/tmp` here.** The Node.js language host creates FIFOs in `$TMPDIR`,
+  and virtiofs (`/workspace`) refuses `mkfifo` → every `pulumi preview/up` fails with a bare
+  `an unhandled error occurred: permission denied`. Run Pulumi commands (and `scripts/check.sh`) with
+  `TMPDIR=/tmp` in the sandbox. FIFOs cost no memory. Not an issue on a normal laptop, so nothing in the repo
+  works around it. Operator: worth fixing in the image (e.g. a `$TMPDIR` that supports FIFOs).
+- **Sandbox image lacks `make`, `rsync`, `strace`, `strings`.** Run `scripts/*.sh` directly instead of `make`.
+  The Makefile is a thin wrapper for the speaker's laptop.
 
-### Repo conventions decided
+### What was built — design notes
 
-- Top level: `PLAN.md`, `README.md` (how to use the repo), `CHEATSHEET.md` (talk on one page),
-  `Makefile` (`prep`, `reset`, `check`), `scripts/prep.sh`, `.gitignore`.
-- `.gitignore` must cover `*.tfstate*`, `.terraform/`, `terraform.tfstate.d/`, `node_modules/`, `bin/`,
-  `.pulumi-state/` (or whatever the local Pulumi backend dir is), `.idea/`, `*.tfplan`, generated files
-  from `local_file`, and the provider mirror / cache dir.
-- Commit `.terraform.lock.hcl` and `package-lock.json` (reproducible + offline `npm ci`).
-- Never commit a `Pulumi.<stack>.yaml` that contains `encryptionsalt` or `secure:` values (passphrase-bound).
-  Stack config with plain values only. Secrets are set via commands in the README or Makefile.
-- Blank markers: `# LIVE: <hint>` (HCL) and `// LIVE: <hint>` (TS). `live/` must still parse or compile where
-  feasible, or at least fail obviously. Check that `diff -r final live` stays small (5–10 lines per tool).
-- Every showcase `README.md` contains: goal, time budget, step-by-step commands for both tools, talking
-  points, the neutral comparison, and an "OpenTofu — good to know" box where relevant.
-
-### Implementation ideas per showcase (to validate while building)
-
-- **Pulumi local backend per project:** try `backend: url: file://<relative dir>` in `Pulumi.yaml` so the
-  state sits next to the code like `terraform.tfstate` (nice for 03). If relative paths don't work, use
-  `PULUMI_BACKEND_URL` set by the Makefile, or `pulumi login --local`. Stacks are then
-  `organization/<project>/<stack>`.
-- **Same provider on both sides for refresh/drift (03, 09):** Terraform `hashicorp/local` `local_file`.
-  For Pulumi, try `pulumi package add terraform-provider hashicorp/local` (any-Terraform-provider bridge,
-  generates a local SDK under `sdks/`). That's also a talking point for the providers block. Fallback: a small
-  TypeScript dynamic provider that writes a file and implements `read`.
-  Demo: create the file → edit or delete it by hand → `terraform plan` detects it (refresh by default)
-  vs. `pulumi preview` shows no changes → `pulumi preview --refresh` / `pulumi refresh` detects it. Check
-  whether Pulumi 3.271 has a project/stack option or env var to refresh by default
-  (`options.refresh: always` in `Pulumi.yaml`, `PULUMI_REFRESH`?), and whether the default changed recently.
-- **02 hello world:** `random_pet` + `random_password`. Changing `length` / `prefix` shows replacement in both diffs.
-- **03 state:** `random_password.result` is clear text in `terraform.tfstate`. Pulumi marks
-  `RandomPassword.result` as secret automatically → ciphertext in state.
-- **04 abstraction (offline):** a "services" map → per service `random_password` + `local_file` (rendered
-  JSON config). Terraform: local module + `for_each` + conditional `count`. Pulumi: `ComponentResource`
-  class with a typed args interface, loop, `if`, and the `Output<T>` / `pulumi.interpolate` pitfall.
-  `dynamic` blocks need a resource with nested blocks. That probably waits for the AWS phase (e.g. security
-  group rules). Offline candidate: `tls_cert_request` `subject` (weak).
-- **05 environments:** Terraform `.tfvars` per environment + workspaces (`terraform.workspace`,
-  `terraform.tfstate.d/`). Mention directory-per-environment in the README. Pulumi stacks `dev` / `prod` with
-  committed plain `Pulumi.dev.yaml` / `Pulumi.prod.yaml`, `pulumi config`, a `StackReference` mention.
-  **Check:** does `pulumi stack init` write `encryptionsalt` into an existing committed stack file? If
-  yes, either accept a dirty working tree and let `make reset` restore it, or create stack files via script.
-- **06 secrets:** Terraform `sensitive` variable/output, `terraform output -json` reveals it, state is clear text.
-  `ephemeral "random_password"` (random provider ≥ 3.7) is not stored in state; the real consumer
-  (write-only attribute such as `aws_ssm_parameter.value_wo`) comes in the AWS phase. Pulumi
-  `pulumi config set --secret`, `config.requireSecret`, `secure:` in stack file, encrypted state,
-  `pulumi stack output --show-secrets`, secretness propagation through `interpolate`.
-  OpenTofu extra: an `encryption.tofu` with a `pbkdf2` key provider whose passphrase comes from a
-  variable (shows state encryption + early evaluation). The passphrase must not be committed.
-- **07 testing:** Terraform module with a `validation` block + `tests/*.tftest.hcl` (`command = plan`,
-  `mock_provider`, `expect_failures`). Pulumi: vitest + `pulumi.runtime.setMocks`, testing component
-  outputs and a validation error. Live: write one `run` block / one `it(...)`.
-- **prep.sh:** `terraform providers mirror` into a repo-local, git-ignored mirror dir + an offline
-  `.tfrc` (`provider_installation { filesystem_mirror {...} }`) used via `TF_CLI_CONFIG_FILE` on stage.
-  Same for OpenTofu if `*.tofu` examples exist. `npm ci` + `pulumi install` in every Pulumi project
-  (fetches plugins). Pre-run `pulumi new` once so `--offline` works. Then run `terraform init` in every
-  Terraform project.
-- **JetBrains IDEA Ultimate:** list the needed plugins in `README.md` (Terraform and HCL plugin, Node.js /
-  TypeScript support). Don't commit `.idea/`.
-
-### OpenTofu / Terraform claims still to verify against installed versions
-
-State and plan encryption (OpenTofu 1.7+), early variable evaluation in `backend` / module `source`
-(OpenTofu 1.8), provider `for_each` and `-exclude` (OpenTofu 1.9), `enabled` meta-argument (version?),
-`.tofu` extension precedence, `tofu test` mock parity, Terraform ephemeral resources (1.10) and
-write-only attributes (1.11), Terraform S3 backend `use_lockfile` (1.10+). Also check what Terraform
-1.12–1.17 added that might close or open gaps. That's newer than the agent's knowledge cutoff, so read the changelogs.
+- **Offline provider mirror:** `scripts/prep.sh` runs `terraform providers mirror` (and `tofu providers mirror`)
+  into **one** dir `.cache/provider-mirror` (layout `<registry host>/<ns>/<type>`, so both registries coexist) and
+  writes `.cache/cli.tfrc`. `scripts/env.sh` exports `TF_CLI_CONFIG_FILE` — OpenTofu reads that variable too
+  (a separate `TOFU_CLI_CONFIG_FILE` was ignored in favour of it). `providers mirror` needs `terraform get` first
+  when there are local modules. From the mirror, `init` prints `(unauthenticated)` + an incomplete-lock warning
+  (talking point in 01).
+- **Lock files** are committed with hashes for 5 platforms (`terraform providers lock -platform=…`).
+- **Pulumi state** per project: `backend: url: file://./.pulumi-state` in `Pulumi.yaml` works with a relative path,
+  but the directory must exist → `.pulumi-state/.gitkeep` is committed. `.gitignore` needs `**/.pulumi-state/*`
+  (a pattern with a slash is otherwise anchored to the repo root — that almost committed state once).
+- **Same `local` provider on both sides:** `pulumi package add terraform-provider hashicorp/local 2.9.1` (and
+  `hashicorp/archive 2.8.1` in 04) works offline after prep. It adds `packages:` to `Pulumi.yaml` and
+  `"@pulumi/local": "file:sdks/local"` + `allowScripts` to `package.json`. `sdks/` is git-ignored because
+  `pulumi install` regenerates it (prep does that). Projects with `file:sdks/` deps use `pulumi install`, the others
+  `npm ci` + `pulumi install --no-dependencies`.
+- **Pulumi refresh by default:** `options: refresh: always` in `Pulumi.yaml` works. So does
+  `PULUMI_OPTION_REFRESH=true` (the value `always` does *not* work in the env var). 03 has it commented out.
+- **Pulumi stack files:** `pulumi stack init` adds `encryptionsalt` to an existing committed stack file, and
+  `pulumi stack rm` *deletes* the stack file unless `--preserve-config`. Hence: `reset.sh` restores tracked stack
+  files via git and deletes untracked ones only if they contain a salt/secret. `check.sh` backs up and restores
+  stack files itself.
+- **Pulumi config schema** (`config:` in `Pulumi.yaml`): a wrong type, or a plaintext value for a `secret: true`
+  key, is rejected at `preview`/`up` before the program runs. `pulumi config set` itself accepts it. Used in 05/06.
+- **01 Pulumi live** has no committed dir: `pulumi new` refuses a non-empty target, so the speaker runs
+  `pulumi new typescript --name bootstrap --dir live` from `01-bootstrap/pulumi`. `reset --live` deletes it. Prep
+  rehearses that flow once in a temp dir so the template (`--offline`) and its npm deps (`--prefer-offline`) are cached.
+  Fully offline rehearsal (`npm install --offline`) passed.
+- **Findings that became talking points:**
+  - Pulumi replaces **create-before-delete** by default. A `local.File` with a fixed name vanished on replace →
+    `deleteBeforeReplace: true` (04).
+  - `JSON.stringify` on an `Output<T>` compiles fine and silently writes
+    `"Calling [toJSON] on an [Output<T>] is not supported…"` into the file (04 live moment).
+  - Secretness propagates through invokes: 04's `bundlePath` output becomes `[secret]`.
+  - `terraform test`: `run` blocks share state, so a per-run `override_resource` was ignored on a resource created
+    by an earlier run → a file-level override (07).
+  - Pulumi + vitest: a static import of the component is fine as long as the module creates no resources at import time.
+- **Live gaps (`scripts/diff.sh`):** 02: TF 8 / Pulumi 5 lines, 03: 4/5, 04: 8/9, 05: 8/5, 06: 4/5, 07: 9/3.
+  01 is a whole-project bootstrap by design.
 
 ### Next steps (in order)
 
-1. Confirm the proxy allowlist works (see above).
-2. Build the skeleton: `.gitignore`, `README.md`, `Makefile`, `scripts/prep.sh`, `CHEATSHEET.md` stub.
-3. Build showcases 01–07: `final/` first and verify each end to end offline (apply, destroy, tests),
-   then derive `live/` from it.
-4. Backup blocks 09–11 (offline-capable parts).
-5. Phase 2 (when the AWS sandbox account exists): ask the operator for short-lived credentials
-   (SSO device code or exported session env vars). Move hello-world / state / secrets / backends to AWS,
-   and add `dynamic` blocks + write-only attributes.
+1. Operator: review and merge `agent/initial-setup`. Rehearse on the speaker's laptop (macOS? → lock files already
+   carry darwin hashes): `make reset-live prep check`, then one dry run per showcase from `live/` with a timer.
+   Adjust the time budgets in the READMEs + `CHEATSHEET.md`.
+2. Backup blocks (offline parts):
+   - **09 drift deep-dive:** `local_file` + `local.File` (bridged), compare `plan` / `-refresh-only` / `pulumi refresh`
+     / `options.refresh: always`, plus out-of-band *deletion* vs. *modification*.
+   - **10 providers & licensing:** the `terraform-provider` bridge from 03/04 as the hook. `@pulumi/random` vs.
+     `pulumi package add terraform-provider hashicorp/random`. BSL / MPL / Apache 2.0. `tofu` as a drop-in.
+   - **11 refactoring:** `moved` blocks vs. Pulumi `aliases`. `import` blocks (+ TF 1.14 `terraform query`) vs. `pulumi import`.
+3. Phase 2 (when the AWS sandbox account exists): ask the operator for short-lived credentials (SSO device code or
+   exported session env vars). Move hello-world / state / secrets / backends to AWS. Add `dynamic` blocks with
+   security group rules, write-only attributes (`aws_ssm_parameter.value_wo`) for 06, S3 backend with `use_lockfile`
+   for 08, and drift via a console tag edit for 09.
