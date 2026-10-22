@@ -65,11 +65,24 @@ pulumi destroy --yes && pulumi stack rm dev --yes
 - **Secretness propagates.** The archive invoke gets secret inputs (the passwords), so its
   whole result is secret: `pulumi stack output bundlePath` shows `[secret]`. Safe, but
   sometimes surprising (`pulumi.unsecret()` if you're sure).
-- **Replacement order differs!** Pulumi replaces **create-before-delete** by default.
-  Terraform does **destroy-before-create** unless you set `create_before_destroy`. For a
-  `local.File` with a fixed name, Pulumi's default writes the new file and then deletes it
-  as "the old one". Hence `deleteBeforeReplace: true` in `service.ts`. The same applies to
-  any cloud resource with a unique name (S3 buckets, IAM roles…).
+- **Replacement order differs!** Pulumi replaces **create-before-delete** by default (no
+  gap without the resource). Terraform does **destroy-before-create** (`-/+`) unless you set
+  `lifecycle { create_before_destroy = true }` (`+/-`).
+  - **Why Pulumi can afford it: auto-naming.** Without an explicit name, a cloud resource
+    gets its logical name plus a random suffix (`my-bucket-a1b2c3d`: "-" + 7 random chars),
+    so old and new never collide.
+  - **Explicit names are handled too, for bridged providers.** If you set an auto-named
+    field like `bucket` yourself, the Terraform bridge switches that resource to
+    delete-before-replace on its own (`nameRequiresDeleteBeforeReplace` in
+    pulumi-terraform-bridge).
+  - **The gap: unique fields that aren't auto-named.** `local.File.filename` is one, as are
+    DNS record names, ports and file paths. Pulumi's default writes the new file, then
+    deletes it as "the old one". Hence `deleteBeforeReplace: true` in `service.ts`.
+  - **Terraform has the mirror image.** Its default is safe for fixed names, but
+    `create_before_destroy` with a fixed name hits the same collision: verified with
+    `local_file`, which is gone after the replace. The usual fix is a `name_prefix`
+    argument (AWS) or a `random_id` suffix. Terraform has no auto-naming: an omitted name
+    is up to the provider (e.g. `aws_s3_bucket` → `terraform-2026…`).
 - **Complexity cuts both ways:** HCL caps how clever a config can get. TypeScript doesn't,
   so the team's discipline (code review, tests in 07) sets the limit.
 

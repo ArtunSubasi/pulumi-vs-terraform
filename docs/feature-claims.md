@@ -21,7 +21,8 @@ scratch configs run with both binaries. Re-check before the talk if the versions
 | `terraform plan` refreshes by default | ✅ | — | `-refresh=false`, `-refresh-only`. **New in 1.17:** `-minimal-refresh` |
 | Pulumi: no refresh by default | ✅ | — | Tested (03). Opt in: `--refresh`, `pulumi refresh`, `options: refresh: always` in `Pulumi.yaml`, or `PULUMI_OPTION_REFRESH=true` (`always` only works in `Pulumi.yaml`) |
 | Pulumi update plans | ⚠️ opt-in | — | `preview --save-plan` is `[PREVIEW]`. `up --plan` is `[EXPERIMENTAL]` and hidden without `PULUMI_EXPERIMENTAL=1`. `up --strict` is `[EXPERIMENTAL]` |
-| Pulumi replacement order | ✅ create-before-delete by default | — | Tested (04): a `local.File` with a fixed name disappears on replace. Fix: `deleteBeforeReplace: true` |
+| Pulumi replacement order | ✅ create-before-delete by default | — | Tested (04): a `local.File` with a fixed name disappears on replace. Fix: `deleteBeforeReplace: true`. Auto-naming (name + "-" + 7 random chars) normally prevents collisions. For an explicitly set auto-named field, bridged providers switch to delete-before-replace automatically (source: pulumi-terraform-bridge `nameRequiresDeleteBeforeReplace`; not run against AWS) |
+| Terraform replacement order | ✅ destroy-before-create by default | — | Tested: `lifecycle { create_before_destroy = true }` + a fixed `local_file` name → the file is gone after the replace (the deposed object's destroy deletes it). Fix: `name_prefix` / `random_id` suffix |
 
 ## Terraform 1.12 → 1.17 highlights
 

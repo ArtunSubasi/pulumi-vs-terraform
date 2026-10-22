@@ -164,7 +164,12 @@ NN-topic/
   Fully offline rehearsal (`npm install --offline`) passed.
 - **Findings that became talking points:**
   - Pulumi replaces **create-before-delete** by default. A `local.File` with a fixed name vanished on replace →
-    `deleteBeforeReplace: true` (04).
+    `deleteBeforeReplace: true` (04). Pulumi normally avoids the collision through auto-naming (logical name +
+    "-" + 7 random chars). And for an explicitly set auto-named field (e.g. `bucket`), the Terraform bridge flips
+    the resource to delete-before-replace itself (`nameRequiresDeleteBeforeReplace`, pulumi-terraform-bridge
+    `pkg/tfbridge/schema.go`). Unique fields that aren't auto-named (`filename`, DNS names…) get no such help.
+    Terraform mirror image (verified): default destroy-before-create is safe, but `create_before_destroy` +
+    fixed `filename` deletes the file just the same → `name_prefix` / `random_id` suffix.
   - `JSON.stringify` on an `Output<T>` compiles fine and silently writes
     `"Calling [toJSON] on an [Output<T>] is not supported…"` into the file (04 live moment).
   - Secretness propagates through invokes: 04's `bundlePath` output becomes `[secret]`.
