@@ -1,0 +1,20 @@
+{
+  "name": "abstraction",
+  "private": true,
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@pulumi/archive": "file:sdks/archive",
+    "@pulumi/local": "file:sdks/local",
+    "@pulumi/pulumi": "^3.271.0",
+    "@pulumi/random": "^4.21.4",
+    "@pulumi/tls": "^5.6.2"
+  },
+  "allowScripts": {
+    "file:sdks/archive": true,
+    "file:sdks/local": true
+  }
+}

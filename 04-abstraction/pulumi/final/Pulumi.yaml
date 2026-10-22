@@ -1,0 +1,22 @@
+name: abstraction
+description: 04 - Abstraction and complexity
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+# State lives next to the code, like terraform.tfstate (local file backend).
+backend:
+  url: file://./.pulumi-state
+packages:
+  local:
+    source: terraform-provider
+    version: 1.5.0
+    parameters:
+      - hashicorp/local
+      - 2.9.1
+  archive:
+    source: terraform-provider
+    version: 1.5.0
+    parameters:
+      - hashicorp/archive
+      - 2.8.1

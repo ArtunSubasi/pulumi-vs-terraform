@@ -1,0 +1,3 @@
+config:
+  environments:instanceCount: 1
+  environments:logLevel: debug

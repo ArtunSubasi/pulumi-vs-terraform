@@ -1,0 +1,9 @@
+name: hello-world
+description: 02 - Hello world and the apply workflow
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+# State lives next to the code, like terraform.tfstate (local file backend).
+backend:
+  url: file://./.pulumi-state

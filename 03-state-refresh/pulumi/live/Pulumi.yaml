@@ -1,0 +1,19 @@
+name: state-refresh
+description: 03 - State and refresh
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+# State lives next to the code, like terraform.tfstate (local file backend).
+backend:
+  url: file://./.pulumi-state
+packages:
+  local:
+    source: terraform-provider
+    version: 1.5.0
+    parameters:
+      - hashicorp/local
+      - 2.9.1
+# Uncomment to refresh before every preview / up / destroy, like Terraform does by default:
+# options:
+#   refresh: always

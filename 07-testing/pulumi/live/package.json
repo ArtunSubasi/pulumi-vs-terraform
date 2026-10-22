@@ -1,0 +1,21 @@
+{
+  "name": "testing",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  },
+  "dependencies": {
+    "@pulumi/local": "file:sdks/local",
+    "@pulumi/pulumi": "^3.271.0",
+    "@pulumi/random": "^4.21.4"
+  },
+  "allowScripts": {
+    "file:sdks/local": true
+  }
+}

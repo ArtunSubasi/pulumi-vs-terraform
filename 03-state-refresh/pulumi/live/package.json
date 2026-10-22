@@ -1,0 +1,17 @@
+{
+  "name": "state-refresh",
+  "private": true,
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@pulumi/local": "file:sdks/local",
+    "@pulumi/pulumi": "^3.271.0",
+    "@pulumi/random": "^4.21.4"
+  },
+  "allowScripts": {
+    "file:sdks/local": true
+  }
+}
