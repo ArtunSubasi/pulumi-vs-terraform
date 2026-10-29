@@ -175,6 +175,12 @@ NN-topic/
   - Secretness propagates through invokes: 04's `bundlePath` output becomes `[secret]`.
   - `terraform test`: `run` blocks share state, so a per-run `override_resource` was ignored on a resource created
     by an earlier run → a file-level override (07).
+  - **Pulumi backend selection** (01, verified 3.271): `PULUMI_BACKEND_URL` > `backend.url` in `Pulumi.yaml` >
+    stored login. A `pulumi new` without a pinned backend silently wrote demo state into another project's prod
+    `azblob://` container (cached `az` refresh token + permanent blob data role outside PIM). With no login and an
+    AI agent detected, Pulumi signs up an ephemeral Pulumi Cloud account (`/tmp/.pulumi/agent-claim.json`).
+    `pulumi login --local` = `file://~` → `~/.pulumi/stacks/<project>/<stack>.json`, where `~` is the OS user's home
+    (ignores `$HOME`/`$PULUMI_HOME`). `pulumi new` has no backend flag and never writes `backend.url`.
   - Pulumi + vitest: a static import of the component is fine as long as the module creates no resources at import time.
 - **Live gaps (`scripts/diff.sh`):** 02: TF 8 / Pulumi 5 lines, 03: 4/5, 04: 8/9, 05: 8/5, 06: 4/5, 07: 9/3.
   01 is a whole-project bootstrap by design.
