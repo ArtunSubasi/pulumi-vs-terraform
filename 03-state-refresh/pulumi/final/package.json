@@ -7,11 +7,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@pulumi/local": "file:sdks/local",
-    "@pulumi/pulumi": "^3.271.0",
-    "@pulumi/random": "^4.21.4"
-  },
-  "allowScripts": {
-    "file:sdks/local": true
+    "@pulumi/aws": "^7.0.0",
+    "@pulumi/pulumi": "^3.271.0"
   }
 }

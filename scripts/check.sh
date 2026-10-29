@@ -28,7 +28,13 @@ if [ -z "${PULUMI_CONFIG_PASSPHRASE:-}" ]; then
   export PULUMI_CONFIG_PASSPHRASE
 fi
 
+# Showcases that create real AWS resources. Skipped (not failed) without valid credentials.
+AWS_SHOWCASES="03-state-refresh"
+HAVE_AWS=0
+aws sts get-caller-identity >/dev/null 2>&1 && HAVE_AWS=1
+
 FAILED=()
+SKIPPED=()
 fail() { warn "$1"; FAILED+=("$1"); }
 
 showcase_of() { local r; r="$(rel "$1")"; echo "${r%%/*}"; }
@@ -106,6 +112,10 @@ check_pulumi() {
 run() {
   local kind=$1 p=$2
   log "$kind: $(rel "$p")"
+  if [ "$HAVE_AWS" = 0 ] && [[ " $AWS_SHOWCASES " == *" $(showcase_of "$p") "* ]]; then
+    warn "$(rel "$p"): skipped, needs AWS credentials (aws sts get-caller-identity failed)"
+    SKIPPED+=("$(rel "$p")"); return
+  fi
   # Not inside `if` or `||`: errexit is ignored in a condition context, even in a subshell.
   local rc
   set +e; ( set -e; "check_$kind" "$p" "${3:-}" ); rc=$?; set -e
@@ -118,6 +128,9 @@ if command -v tofu >/dev/null; then
 fi
 for p in $(pulumi_projects); do run pulumi "$p"; done
 
+if [ ${#SKIPPED[@]} -gt 0 ]; then
+  printf '\n'; warn "SKIPPED (no AWS credentials):"; printf '  %s\n' "${SKIPPED[@]}" >&2
+fi
 if [ ${#FAILED[@]} -gt 0 ]; then
   printf '\n'; warn "FAILED:"; printf '  %s\n' "${FAILED[@]}" >&2; exit 1
 fi

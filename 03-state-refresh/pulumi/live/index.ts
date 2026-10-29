@@ -1,13 +1,14 @@
 import * as random from "@pulumi/random";
-// Generated from the Terraform provider: pulumi package add terraform-provider hashicorp/local 2.9.1
-import * as local from "@pulumi/local";
+// Built from the Terraform AWS provider by the Pulumi bridge, like `local` was.
+import * as aws from "@pulumi/aws";
 
 const db = new random.RandomPassword("db", {
     length: 16,
     special: false,
 });
 
-// A file on disk is the cheapest "real" resource: easy to change behind the tool's back.
-// LIVE: new local.File("config", ...) — filename "out/app.conf", content "db_user=app\nport=5432\n"
+// A real cloud resource that is easy to change behind the tool's back: edit a tag in the S3 console.
+// The name is auto-generated: "pulumi-state-refresh-" + 7 random characters.
+// LIVE: new aws.s3.Bucket("pulumi-state-refresh", ...) — forceDestroy: true, tags { demo: "tf-vs-pulumi", env: "dev" }
 
-// LIVE: export const configFile
+// LIVE: export const bucketName

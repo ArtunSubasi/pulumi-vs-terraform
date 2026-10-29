@@ -115,6 +115,8 @@ NN-topic/
 - [ ] Rehearsal on the speaker's laptop (`make reset-live prep check`, then a dry run with the live/ dirs)
 - [ ] Backup blocks 09–11 (offline-capable parts)
 - [ ] Phase 2: switch hello-world/state/secrets/backends to real AWS
+  - [ ] 03 moved to an S3 bucket + console tag edit (local_file drift showed as "deleted", confusing). Written
+    offline, **not run yet**: needs `terraform providers lock` (5 platforms) + `npm install` on the host, then a run against AWS
 
 ## Handover notes (for the next session)
 

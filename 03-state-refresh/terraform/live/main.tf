@@ -3,7 +3,7 @@ resource "random_password" "db" {
   special = false
 }
 
-# A file on disk is the cheapest "real" resource: easy to change behind the tool's back.
-# LIVE: resource "local_file" "config" — filename "${path.module}/out/app.conf", content "db_user=app\nport=5432\n"
+# A real cloud resource that is easy to change behind the tool's back: edit a tag in the S3 console.
+# LIVE: resource "aws_s3_bucket" "demo" — bucket_prefix "tf-state-refresh-", force_destroy = true, tags { demo = "tf-vs-pulumi", env = "dev" }
 
-# LIVE: output "config_file"
+# LIVE: output "bucket"

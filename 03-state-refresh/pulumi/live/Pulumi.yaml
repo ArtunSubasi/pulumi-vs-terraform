@@ -7,13 +7,6 @@ runtime:
 # State lives next to the code, like terraform.tfstate (local file backend).
 backend:
   url: file://./.pulumi-state
-packages:
-  local:
-    source: terraform-provider
-    version: 1.5.0
-    parameters:
-      - hashicorp/local
-      - 2.9.1
 # Uncomment to refresh before every preview / up / destroy, like Terraform does by default:
 # options:
 #   refresh: always
