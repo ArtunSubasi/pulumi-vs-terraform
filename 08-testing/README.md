@@ -41,6 +41,55 @@ npm test                         # 4 passed
 npx vitest                       # watch mode: tests re-run on save, nice in the IDE
 ```
 
+## What a mocked unit test actually tests
+
+With mocked providers, nothing talks to an API. The test exercises **your code**: the logic
+that turns inputs into resource arguments and outputs. The provider's behaviour is not tested.
+
+| Covered | Not covered |
+|---|---|
+| Input validation (`validation` blocks / `throw`) | Whether the cloud API accepts the arguments (limits, formats, quotas) |
+| Expressions, string building, `jsonencode`, conditionals, loops | Defaults and computed values the real provider fills in |
+| Wiring: which resource gets which value from which other resource | IAM permissions, networking, eventual consistency, name collisions |
+| Outputs and their sensitivity / secretness | Update behaviour: in-place vs. replace, `create_before_destroy` |
+| Which resources exist (Pulumi: with which options and parents) | Drift, and whether the deployed thing actually works |
+
+In this showcase:
+
+- `config_has_name_and_port` / "writes name and port": `name` and `port` end up in the
+  JSON and the file name. That is `jsonencode` / `jsonStringify` plus string interpolation.
+- `connection_string_uses_password`: the password resource's result is wired into the
+  output. The value is pinned (`override_resource` / the `newResource` mock), because the
+  real one would be random.
+- `rejects_*`: the validation rules. Pure logic, no resource involved.
+
+How the two mocks differ:
+
+- **Terraform** still loads the real provider's **schema** (hence `terraform init`). Your
+  configuration is type-checked against it, and the mock fills every computed attribute
+  with generated fake data (e.g. random strings) unless you override it. The provider
+  itself never runs.
+- **Pulumi** mocks replace the engine *and* the provider. No plugin, no schema check at
+  runtime: `newResource` gets the inputs and returns whatever state you want. Only
+  TypeScript's compile-time types stand between you and a wrong argument. In exchange,
+  you control every output exactly, and a test takes milliseconds.
+
+So a green unit test means "my module computes what I intended", not "this will deploy".
+That needs the layers below.
+
+## Beyond unit tests
+
+| Layer | Terraform | Pulumi |
+|---|---|---|
+| Static analysis | `tflint`, Checkov, Trivy (formerly tfsec), KICS | ESLint / `tsc`. Most IaC scanners don't read Pulumi programs |
+| Policy on the plan | Terraform Policy (`-policies`, GA in 1.17), Sentinel, Conftest/OPA on `terraform show -json` | CrossGuard policy packs (`pulumi preview --policy-pack`), OPA/Rego supported |
+| Integration (real infra) | `terraform test` with real providers and `command = apply`, or **Terratest** (Go: apply, probe from outside, destroy). `check` blocks for continuous assertions | Automation API in your test runner, or Go `integration.ProgramTest` |
+
+Terratest predates `terraform test`. Its niche today is probing the deployed result from
+outside (HTTP, AWS SDK, retries until healthy) and orchestrating several modules. Pulumi
+needs no separate tool for that: the Automation API runs inside the same vitest suite.
+LocalStack (`tflocal`, `pulumilocal`) makes integration tests cheap enough for CI.
+
 ## Talking points
 
 - **Both have real unit tests with fake providers now.** `terraform test` (1.6) + mocks
@@ -58,10 +107,7 @@ npx vitest                       # watch mode: tests re-run on save, nice in the
   - Pulumi: `setMocks` must be called before any resource is *constructed*. If the
     module under test creates resources at import time, import it *after* `setMocks`
     (dynamic `import()`).
-- **Beyond unit tests:** Terraform has `check` blocks (continuous assertions) and
-  `terraform test` with real providers (integration). Pulumi has integration tests with
-  the Automation API, and policy as code (CrossGuard). Terraform 1.17 made
-  Terraform Policy GA (`-policies`).
+- **Beyond unit tests:** see the table above. Mocks prove the logic, not the deployment.
 
 ## OpenTofu — good to know
 
