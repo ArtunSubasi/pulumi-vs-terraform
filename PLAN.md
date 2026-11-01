@@ -52,29 +52,30 @@ NN-topic/
 | 04 | **Abstraction & complexity** | `for_each`, conditionals via `count`, `dynamic` blocks, a local module | Loops, `if`, functions, a `ComponentResource` class, types + autocomplete. Catch: `Output<T>` / `apply()` | 7 |
 | 05 | **Environments** | `.tfvars` per environment, workspaces vs. directory-per-environment | Stacks, `Pulumi.<stack>.yaml`, `pulumi config`, stack references | 4 |
 | 06 | **Secrets** | `sensitive = true` hides output but not state. Ephemeral values / write-only attributes | `config set --secret`, encrypted in config **and** state, `pulumi.secret()`, secretness propagates | 4 |
-| 07 | **Testing** | `terraform test`, `.tftest.hcl`, `mock_provider` | Unit tests with `pulumi.runtime.setMocks` + vitest | 5 |
+| 07 | **Cloud encryption** (AWS) | *No Terraform:* OpenTofu `encryption` block with the `aws_kms` key provider (whole state + plan) | `--secrets-provider awskms://…` per stack (secret values only) | 3 |
+| 08 | **Testing** | `terraform test`, `.tftest.hcl`, `mock_provider` | Unit tests with `pulumi.runtime.setMocks` + vitest | 5 |
 
-**Sum: ~31 min**
+**Sum: ~34 min**
 
 ### Backup blocks (swap in dynamically)
 
 | # | Showcase | Notes |
 |---|---|---|
-| 08 | **Remote backend** | Terraform S3 backend with native locking (`use_lockfile`) vs. `pulumi login s3://…`. Blocked until AWS is available; LocalStack fallback |
-| 09 | **Drift & refresh deep-dive** | Change a resource outside the tool, then compare both tools' default behaviour. Best on AWS (edit a tag in the console). Offline variant: `local_file` |
-| 10 | **Providers & licensing** | BSL vs. MPL (OpenTofu) vs. Apache 2.0 (Pulumi). Pulumi's bridged providers (`@pulumi/random` *is* the Terraform provider underneath) vs. native providers. `tofu` as a drop-in |
-| 11 | **Refactoring** | `moved` blocks vs. Pulumi `aliases`. `import` blocks vs. `pulumi import` |
-| 12 | **Pulumi ESC / Automation API** | Only if Pulumi Cloud is acceptable — environments + secrets as a service. Automation API = IaC embedded in a program |
+| 09 | **Remote backend** | Terraform S3 backend with native locking (`use_lockfile`) vs. `pulumi login s3://…`. Blocked until AWS is available; LocalStack fallback |
+| 10 | **Drift & refresh deep-dive** | Change a resource outside the tool, then compare both tools' default behaviour. Best on AWS (edit a tag in the console). Offline variant: `local_file` |
+| 11 | **Providers & licensing** | BSL vs. MPL (OpenTofu) vs. Apache 2.0 (Pulumi). Pulumi's bridged providers (`@pulumi/random` *is* the Terraform provider underneath) vs. native providers. `tofu` as a drop-in |
+| 12 | **Refactoring** | `moved` blocks vs. Pulumi `aliases`. `import` blocks vs. `pulumi import` |
+| 13 | **Pulumi ESC / Automation API** | Only if Pulumi Cloud is acceptable — environments + secrets as a service. Automation API = IaC embedded in a program |
 
 ## OpenTofu "good to know" (verified, see [`docs/feature-claims.md`](docs/feature-claims.md))
 
 | Showcase | OpenTofu difference |
 |---|---|
 | 01 | `tofu init` uses `registry.opentofu.org` (different lock file entries). `main.tofu` overrides `main.tf` (1.8) |
-| 03 / 06 / 08 | **Client-side state & plan encryption** (1.7). Terraform 1.17 has none. Example: `06-secrets/opentofu` |
+| 03 / 06 / 07 / 09 | **Client-side state & plan encryption** (1.7). Terraform 1.17 has none. Examples: `06-secrets/opentofu` (passphrase), `07-cloud-encryption/opentofu` (AWS KMS) |
 | 04 | Provider `for_each` (1.9), `-exclude` (1.9), `lifecycle { enabled = … }` (1.11) — none of them in Terraform 1.17 |
-| 05 / 08 | Variables in `backend` blocks (1.8; Terraform 1.17: no). Module `source` variables: Tofu 1.8, Terraform 1.15+ only with `const = true` |
-| 07 | `tofu test` runs `07-testing`'s tests unchanged, 4/4 |
+| 05 / 09 | Variables in `backend` blocks (1.8; Terraform 1.17: no). Module `source` variables: Tofu 1.8, Terraform 1.15+ only with `const = true` |
+| 08 | `tofu test` runs `08-testing`'s tests unchanged, 4/4 |
 
 ## Decisions log
 
@@ -85,11 +86,11 @@ NN-topic/
 | Pulumi backend | Local file backend. Remote as a showcase step |
 | Terraform backend | Local. Remote as a showcase step |
 | Project structure | Isolated project per showcase |
-| Licensing / OpenTofu | "Good to know" call-outs per showcase + backup block 10 |
+| Licensing / OpenTofu | "Good to know" call-outs per showcase + backup block 11 |
 | Language | English |
 | IDE | JetBrains IntelliJ IDEA Ultimate |
 | Tone | Neutral |
-| Must-have topic | Default refresh behaviour (showcase 03, deep-dive 09) |
+| Must-have topic | Default refresh behaviour (showcase 03, deep-dive 10) |
 | Time | 30 min core as watermark, rest as swappable backup |
 
 ## Decisions (round 2)
@@ -108,12 +109,13 @@ NN-topic/
 - [x] Sandbox egress allowlist fixed (2026-10-22): Terraform + OpenTofu registries, `releases.hashicorp.com`,
       `get.pulumi.com` and `api.pulumi.com` all work now
 - [x] Repo skeleton: `.gitignore`, `README.md`, `Makefile`, `scripts/` (`prep`, `reset`, `check`, `diff`, `env.sh`), `CHEATSHEET.md`
-- [x] Showcases 01–07 (final + live), verified offline: `reset → prep → check` passes for every `final/`
+- [x] Showcases 01–06 + 08 testing (final + live), verified offline: `reset → prep → check` passes for every `final/`
       (apply, idempotency re-plan/preview, `terraform test` / vitest, destroy), on Terraform 1.17.0,
       OpenTofu 1.13.2 (06 encryption example) and Pulumi 3.271.0
 - [x] OpenTofu/Terraform claims verified → [`docs/feature-claims.md`](docs/feature-claims.md)
 - [ ] Rehearsal on the speaker's laptop (`make reset-live prep check`, then a dry run with the live/ dirs)
-- [ ] Backup blocks 09–11 (offline-capable parts)
+- [ ] Backup blocks 10–12 (offline-capable parts)
+- [ ] 07 cloud encryption (AWS KMS, Pulumi + OpenTofu). Written without AWS credentials, **not run yet**
 - [ ] Phase 2: switch hello-world/state/secrets/backends to real AWS
   - [ ] 03 moved to an S3 bucket + console tag edit (local_file drift showed as "deleted", confusing). Written
     offline, **not run yet**: needs `terraform providers lock` (5 platforms) + `npm install` on the host, then a run against AWS
@@ -176,7 +178,7 @@ NN-topic/
     `"Calling [toJSON] on an [Output<T>] is not supported…"` into the file (04 live moment).
   - Secretness propagates through invokes: 04's `bundlePath` output becomes `[secret]`.
   - `terraform test`: `run` blocks share state, so a per-run `override_resource` was ignored on a resource created
-    by an earlier run → a file-level override (07).
+    by an earlier run → a file-level override (08).
   - **Pulumi backend selection** (01, verified 3.271): `PULUMI_BACKEND_URL` > `backend.url` in `Pulumi.yaml` >
     stored login. A `pulumi new` without a pinned backend silently wrote demo state into another project's prod
     `azblob://` container (cached `az` refresh token + permanent blob data role outside PIM). With no login and an
@@ -184,7 +186,7 @@ NN-topic/
     `pulumi login --local` = `file://~` → `~/.pulumi/stacks/<project>/<stack>.json`, where `~` is the OS user's home
     (ignores `$HOME`/`$PULUMI_HOME`). `pulumi new` has no backend flag and never writes `backend.url`.
   - Pulumi + vitest: a static import of the component is fine as long as the module creates no resources at import time.
-- **Live gaps (`scripts/diff.sh`):** 02: TF 8 / Pulumi 5 lines, 03: 4/5, 04: 8/9, 05: 8/5, 06: 4/5, 07: 9/3.
+- **Live gaps (`scripts/diff.sh`):** 02: TF 8 / Pulumi 5 lines, 03: 4/5, 04: 8/9, 05: 8/5, 06: 4/5, 07: Tofu 5 / Pulumi 2, 08: 9/3.
   01 is a whole-project bootstrap by design.
 
 ### Next steps (in order)
@@ -193,12 +195,12 @@ NN-topic/
    carry darwin hashes): `make reset-live prep check`, then one dry run per showcase from `live/` with a timer.
    Adjust the time budgets in the READMEs + `CHEATSHEET.md`.
 2. Backup blocks (offline parts):
-   - **09 drift deep-dive:** `local_file` + `local.File` (bridged), compare `plan` / `-refresh-only` / `pulumi refresh`
+   - **10 drift deep-dive:** `local_file` + `local.File` (bridged), compare `plan` / `-refresh-only` / `pulumi refresh`
      / `options.refresh: always`, plus out-of-band *deletion* vs. *modification*.
-   - **10 providers & licensing:** the `terraform-provider` bridge from 03/04 as the hook. `@pulumi/random` vs.
+   - **11 providers & licensing:** the `terraform-provider` bridge from 03/04 as the hook. `@pulumi/random` vs.
      `pulumi package add terraform-provider hashicorp/random`. BSL / MPL / Apache 2.0. `tofu` as a drop-in.
-   - **11 refactoring:** `moved` blocks vs. Pulumi `aliases`. `import` blocks (+ TF 1.14 `terraform query`) vs. `pulumi import`.
+   - **12 refactoring:** `moved` blocks vs. Pulumi `aliases`. `import` blocks (+ TF 1.14 `terraform query`) vs. `pulumi import`.
 3. Phase 2 (when the AWS sandbox account exists): ask the operator for short-lived credentials (SSO device code or
    exported session env vars). Move hello-world / state / secrets / backends to AWS. Add `dynamic` blocks with
    security group rules, write-only attributes (`aws_ssm_parameter.value_wo`) for 06, S3 backend with `use_lockfile`
-   for 08, and drift via a console tag edit for 09.
+   for 09, and drift via a console tag edit for 10.

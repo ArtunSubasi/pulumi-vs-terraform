@@ -68,7 +68,8 @@ tofu destroy -auto-approve
 `main.tofu` encrypts both the state and saved plans (`enforced = true` refuses to write
 anything unencrypted). Migrating existing plaintext state needs a temporary `fallback`
 block with `method "unencrypted"`. Key providers besides `pbkdf2`: AWS KMS, GCP KMS,
-OpenBao, Azure Key Vault (1.11), external programs (1.10).
+OpenBao, Azure Key Vault (1.11), external programs (1.10). The AWS KMS variant
+(no passphrase at all) is showcase 07.
 
 ## Talking points
 

@@ -1,4 +1,4 @@
-# 07 — Testing
+# 08 — Testing
 
 **Goal:** unit-test the same service contract in both tools. The config contains name +
 port, the connection string uses the generated password, and invalid input is rejected.
@@ -21,7 +21,7 @@ No real resources, no network, a few seconds per run.
 ## Terraform (`terraform/live`)
 
 ```bash
-cd 07-testing/terraform/live
+cd 08-testing/terraform/live
 cat tests/service.tftest.hcl     # mock_provider, override_resource, run blocks
 terraform init
 terraform test                   # 3 passed
@@ -33,7 +33,7 @@ terraform test                   # 4 passed
 ## Pulumi (`pulumi/live`)
 
 ```bash
-cd 07-testing/pulumi/live
+cd 08-testing/pulumi/live
 cat service.test.ts              # setMocks, valueOf, describe/it
 npm test                         # 3 passed (vitest)
 # LIVE: it("rejects uppercase names", () => expect(() => new Service("Billing", { port: 9000 })).toThrow(/lowercase/))

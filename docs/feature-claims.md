@@ -14,7 +14,7 @@ scratch configs run with both binaries. Re-check before the talk if the versions
 | `-exclude` flag | ✅ OpenTofu only | Tofu 1.9 (`-exclude-file` 1.10) | TF 1.17: `Failed to parse command-line flags` |
 | `enabled` meta-argument | ✅ OpenTofu only, as `lifecycle { enabled = … }` | Tofu 1.11 | Address has no `[0]`. A bare reference to a disabled resource is null, so guard it. TF 1.17 rejects it |
 | `.tofu` overrides same-named `.tf` | ✅ | Tofu 1.8 | Terraform ignores `*.tofu` entirely |
-| Test framework parity (`mock_provider`, `override_resource`, `override_data`, `expect_failures`, `command = plan`) | ✅ | TF 1.6/1.7 · Tofu 1.6/1.8 | `07-testing` passes 4/4 on both. Divergence since: TF 1.17 mocks for ephemeral resources; Tofu 1.11 `for_each` in `mock_provider` |
+| Test framework parity (`mock_provider`, `override_resource`, `override_data`, `expect_failures`, `command = plan`) | ✅ | TF 1.6/1.7 · Tofu 1.6/1.8 | `08-testing` passes 4/4 on both. Divergence since: TF 1.17 mocks for ephemeral resources; Tofu 1.11 `for_each` in `mock_provider` |
 | Ephemeral resources, `ephemeral "random_password"` | ✅ both | TF 1.10 · Tofu 1.11 · hashicorp/random 3.7.0 | Not in state (tested). Using it in a normal argument → `Invalid use of ephemeral value` |
 | Write-only attributes | ✅ both | TF 1.11 · Tofu 1.11 | AWS: `aws_ssm_parameter.value_wo`, `aws_rds_cluster.master_password_wo` (provider 5.87), `aws_db_instance.password_wo`, `aws_secretsmanager_secret_version.secret_string_wo` (5.88). Each with `*_wo_version`. No offline provider has any |
 | S3 backend `use_lockfile` | ✅ both | TF 1.10 (GA 1.11) · Tofu 1.10 | TF 1.11 deprecated `dynamodb_table` (warning at `init`). Tofu 1.13.2 gives no deprecation warning |

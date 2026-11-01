@@ -118,7 +118,7 @@ or with `PULUMI_BACKEND_URL`.
   `PULUMI_BACKEND_URL` → `backend.url` in `Pulumi.yaml` → whatever `pulumi login` was last
   run on this machine (`~/.pulumi/credentials.json`). `pulumi new` only asks you to log in
   when there is no login at all. Terraform defaults to a local file, and a remote backend
-  is a `backend` block you write into each project (08).
+  is a `backend` block you write into each project (09).
   - **Real incident from preparing this talk:** `pulumi new` → `stack init` → `up` went
     through without a single question. The state didn't land locally or in Pulumi Cloud,
     but in an `azblob://…-prod` container of an unrelated project, the last thing

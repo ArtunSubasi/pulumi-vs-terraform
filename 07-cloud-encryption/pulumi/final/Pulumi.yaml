@@ -1,0 +1,15 @@
+name: cloud-encryption
+description: 07 - Cloud encryption
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+# State lives next to the code, like terraform.tfstate (local file backend).
+# The secrets provider is not set here but per stack:
+#   pulumi stack init dev --secrets-provider "awskms://alias/tf-vs-pulumi-demo?region=$AWS_REGION"
+backend:
+  url: file://./.pulumi-state
+config:
+  apiToken:
+    type: string
+    secret: true   # a plaintext value fails validation before the program runs

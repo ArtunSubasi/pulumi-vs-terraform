@@ -3,7 +3,7 @@
 **Before:** `make reset-live && make prep && make check && make reset`. Then, in two
 terminals (left Terraform, right Pulumi): `source scripts/env.sh` + `export PULUMI_CONFIG_PASSPHRASE=…`.
 **Fallback for every step:** `cd ../final` — same code, finished.
-**Watermark:** 30 min core. Backup blocks 08–12 only if there's time or interest.
+**Watermark:** 30 min core. Backup blocks 09–13 only if there's time or interest.
 
 | ⏱ | # | Terraform (left) | Pulumi (right) | Say |
 |---|---|---|---|---|
@@ -13,8 +13,9 @@ terminals (left Terraform, right Pulumi): `source scripts/env.sh` + `export PULU
 | 0:11 | **04 Abstraction** · 7′ | tour module + `for_each` → type `count = var.public ? 1 : 0` + `dynamic "source"` → `apply` → `state list` → `unzip -l out/bundle.zip` | tour `Service` class → type `JSON.stringify(...)` → `up` → `cat out/api.json` 💥 → fix with `pulumi.jsonStringify` → type `if (args.public)` → `up` | HCL special constructs vs. map/if/arrays. **`Output<T>` is the price.** Replacement order: Pulumi create-before-delete! |
 | 0:18 | **05 Environments** · 4′ | `workspace new dev` → `apply -var-file=envs/dev.tfvars` → type `prod.tfvars` → `workspace new prod` → wrong var-file → type precondition → error | type config reads + loop → `stack init dev` → `up` → `stack init prod` → `config set instanceCount three` → schema error → `--type int … 3` → `up` | Workspaces ≠ environments (dir-per-env). Stacks are first-class. `stack rm` deletes the stack file → `--preserve-config` |
 | 0:22 | **06 Secrets** · 4′ | `export TF_VAR_api_token=…` → type sensitive output → `apply` → `output -json` 😬 → `grep s3cr3t terraform.tfstate` → ephemeral not in state | `config set apiToken …` → `preview` → "must be encrypted" → `--secret` → type outputs → `up` → `[secret]` → `grep` state: 0 hits | `sensitive` = display flag. Pulumi encrypts at rest. TF's answer: ephemeral + write-only (never stored). OpenTofu: state encryption (`06-secrets/opentofu`) |
-| 0:26 | **07 Testing** · 5′ | `cat tests/service.tftest.hcl` → `terraform test` → type `run "rejects_uppercase_name"` → `test` | `cat service.test.ts` → `npm test` → type `it("rejects uppercase names")` → `npm test` | Both have mocks now. Built-in declarative vs. your own toolchain. Gotcha: TF runs share state |
-| 0:31 | **Q&A / backup** | 08 remote backend · 09 drift deep-dive · 10 providers & licensing · 11 refactoring (`moved` vs. `aliases`) · 12 ESC / Automation API | | |
+| 0:26 | **07 Cloud encryption** · 3′ | `aws kms describe-key --key-id alias/tf-vs-pulumi-demo` → `cd opentofu/live` → type `key_provider "aws_kms"` + `keys = …` → `tofu init` → `apply` → `head -c 300 terraform.tfstate` (ciphertext + encrypted data key) | `unset PULUMI_CONFIG_PASSPHRASE` → `stack init dev --secrets-provider "awskms://alias/tf-vs-pulumi-demo?region=$AWS_REGION"` → `cat Pulumi.dev.yaml` (`encryptedkey`, no salt) → `config set --secret apiToken …` → `up` | No passphrase to share: access = IAM on the key, every decrypt in CloudTrail. Tofu encrypts the **whole** state, Pulumi only the **secrets**. Terraform: backend-side only (S3 SSE-KMS) |
+| 0:29 | **08 Testing** · 5′ | `cat tests/service.tftest.hcl` → `terraform test` → type `run "rejects_uppercase_name"` → `test` | `cat service.test.ts` → `npm test` → type `it("rejects uppercase names")` → `npm test` | Both have mocks now. Built-in declarative vs. your own toolchain. Gotcha: TF runs share state |
+| 0:34 | **Q&A / backup** | 09 remote backend · 10 drift deep-dive · 11 providers & licensing · 12 refactoring (`moved` vs. `aliases`) · 13 ESC / Automation API | | |
 
 ## Neutral one-liners (when asked "which one?")
 

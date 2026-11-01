@@ -19,8 +19,9 @@ jump to any of them. Everything runs offline with local state. No cloud account 
 | 04 | [Abstraction & complexity](04-abstraction/) | 7 | core |
 | 05 | [Environments](05-environments/) | 4 | core |
 | 06 | [Secrets](06-secrets/) (+ OpenTofu state encryption) | 4 | core |
-| 07 | [Testing](07-testing/) | 5 | core |
-| 08–12 | Remote backend, drift deep-dive, providers & licensing, refactoring, ESC/Automation API | — | backup, see `PLAN.md` |
+| 07 | [Cloud encryption](07-cloud-encryption/) (Pulumi + OpenTofu with AWS KMS) | 3 | core, needs AWS |
+| 08 | [Testing](08-testing/) | 5 | core |
+| 09–13 | Remote backend, drift deep-dive, providers & licensing, refactoring, ESC/Automation API | — | backup, see `PLAN.md` |
 
 Each showcase looks like this:
 

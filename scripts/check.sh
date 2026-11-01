@@ -17,6 +17,7 @@ export VARIANTS=final
 # Keys are showcase dirs, values are space-separated names. Values are random per run.
 declare -A PULUMI_CHECK_SECRETS=(        # pulumi config set --secret <name>
   [06-secrets]="apiToken"
+  [07-cloud-encryption]="apiToken"
 )
 declare -A TF_CHECK_VARS=(               # TF_VAR_<name>, for Terraform and OpenTofu
   [06-secrets]="api_token state_passphrase"
@@ -29,9 +30,19 @@ if [ -z "${PULUMI_CONFIG_PASSPHRASE:-}" ]; then
 fi
 
 # Showcases that create real AWS resources. Skipped (not failed) without valid credentials.
-AWS_SHOWCASES="03-state-refresh"
+AWS_SHOWCASES="03-state-refresh 07-cloud-encryption"
 HAVE_AWS=0
 aws sts get-caller-identity >/dev/null 2>&1 && HAVE_AWS=1
+if [ "$HAVE_AWS" = 1 ] && { [ -z "${ONLY:-}" ] || [[ " $ONLY " == *" 07 "* ]]; }; then
+  # For the Pulumi awskms:// URL below (OpenTofu pins eu-central-1 in main.tofu)
+  export AWS_REGION="${AWS_REGION:-eu-central-1}"
+  "$REPO_ROOT/07-cloud-encryption/key.sh" create >/dev/null   # idempotent, never deleted here
+fi
+
+# Extra `pulumi stack init` arguments per showcase (default: passphrase)
+declare -A PULUMI_CHECK_STACK_ARGS=(
+  [07-cloud-encryption]="--secrets-provider=awskms://alias/tf-vs-pulumi-demo?region=${AWS_REGION:-}"
+)
 
 FAILED=()
 SKIPPED=()
@@ -95,7 +106,8 @@ check_pulumi() {
   for f in Pulumi.*.yaml; do [ -e "$f" ] && cp "$f" "$backup/"; done
   sc="$(showcase_of "$p")"
   for s in "${stacks[@]}"; do
-    pulumi stack init "$s" --non-interactive >/dev/null
+    # shellcheck disable=SC2086
+    pulumi stack init "$s" --non-interactive ${PULUMI_CHECK_STACK_ARGS[$sc]:-} >/dev/null
     for key in ${PULUMI_CHECK_SECRETS[$sc]:-}; do
       pulumi config set --secret "$key" "$(random_secret)" --non-interactive >/dev/null
     done

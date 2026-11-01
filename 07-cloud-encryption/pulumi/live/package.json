@@ -1,0 +1,13 @@
+{
+  "name": "cloud-encryption",
+  "private": true,
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.271.0",
+    "@pulumi/random": "^4.21.4"
+  }
+}

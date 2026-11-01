@@ -81,7 +81,7 @@ pulumi destroy --yes && pulumi stack rm dev --yes
 - **Pulumi's AWS provider is built from Terraform's.** `@pulumi/aws` wraps the
   `hashicorp/aws` provider through the Pulumi Terraform bridge, so both tools run the same
   `Read` code when they refresh. The diff (`tags`, `tagsAll` / `tags_all`) comes from the same
-  schema. Deeper dive: 10.
+  schema. Deeper dive: 11.
 - **Drift in AWS is cheap to create.** A tag edited in the console, a security group rule
   added during an incident, an autoscaler changing a count: the tool only finds out when
   it reads AWS. With Terraform that happens on every plan, with Pulumi only when asked.

@@ -33,7 +33,7 @@ for p in $(pulumi_projects); do
     [ -e "$f" ] || continue
     if git -C "$p" ls-files --error-unmatch "$(basename "$f")" >/dev/null 2>&1; then
       git -C "$p" checkout -q -- "$(basename "$f")"
-    elif grep -qE '^encryptionsalt:|secure:' "$f"; then
+    elif grep -qE '^encryptionsalt:|^encryptedkey:|secure:' "$f"; then
       rm -f "$f"
     fi
   done

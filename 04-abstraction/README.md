@@ -84,7 +84,7 @@ pulumi destroy --yes && pulumi stack rm dev --yes
     argument (AWS) or a `random_id` suffix. Terraform has no auto-naming: an omitted name
     is up to the provider (e.g. `aws_s3_bucket` → `terraform-2026…`).
 - **Complexity cuts both ways:** HCL caps how clever a config can get. TypeScript doesn't,
-  so the team's discipline (code review, tests in 07) sets the limit.
+  so the team's discipline (code review, tests in 08) sets the limit.
 
 ## OpenTofu — good to know
 
