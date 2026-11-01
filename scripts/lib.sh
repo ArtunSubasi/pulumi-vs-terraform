@@ -33,6 +33,11 @@ tf_projects() {
     for v in ${VARIANTS:-final live}; do
       [ -d "$s/terraform/$v" ] && echo "$s/terraform/$v"
     done
+    # Directory-per-environment roots (05): <showcase>/terraform/env-per-directory/<env>
+    for v in "$s"/terraform/env-per-directory/*/; do
+      v="${v%/}"
+      [ "$(basename "$v")" = modules ] || [ ! -d "$v" ] || echo "$v"
+    done
   done
 }
 

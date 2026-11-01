@@ -35,6 +35,33 @@ terraform workspace list
 terraform workspace select default && terraform workspace delete -force dev && terraform workspace delete -force prod
 ```
 
+## Terraform, a directory per environment (`terraform/env-per-directory`)
+
+No workspaces and no `-var-file`. The shared code is a module, and each environment is
+its own root module with its own values and **its own backend**:
+
+```
+env-per-directory/
+  modules/environment/   shared code (no backend, no terraform.workspace)
+  dev/                   module call with dev values, backend "local" → dev/terraform.tfstate
+  prod/                  module call with prod values, backend "local" → ../.state/prod/ (stands in for the prod account's S3 bucket)
+```
+
+```bash
+cd 05-environments/terraform/env-per-directory
+cat dev/main.tf prod/main.tf          # same module, different values
+diff dev/backend.tf prod/backend.tf   # different backends
+(cd dev  && terraform init && terraform apply -auto-approve)
+(cd prod && terraform init && terraform apply -auto-approve)
+find . -name terraform.tfstate -not -path '*/.terraform/*'
+# clean up
+(cd prod && terraform destroy -auto-approve); (cd dev && terraform destroy -auto-approve)
+```
+
+Each directory has its own `init`, so you can't run with the wrong backend or values: you
+pick the environment with `cd`. The cost: every new environment is another directory, and
+a new module input has to be wired into every env's `main.tf`.
+
 ## Pulumi (`pulumi/live`)
 
 ```bash

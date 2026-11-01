@@ -45,7 +45,7 @@ check_tf() {
   for v in ${TF_CHECK_VARS[$(showcase_of "$p")]:-}; do
     export "TF_VAR_$v=$(random_secret)"
   done
-  if compgen -G "terraform.tfstate*" >/dev/null || [ -d terraform.tfstate.d ]; then
+  if compgen -G "terraform.tfstate*" >/dev/null || [ -d terraform.tfstate.d ] || [ -d ../.state ]; then
     warn "$(rel "$p"): has state — run 'make reset' first"; return 1
   fi
   "$cmd" init -input=false -no-color >/dev/null
@@ -71,6 +71,8 @@ check_tf() {
     "$cmd" destroy -input=false -auto-approve -no-color >/dev/null
   fi
   rm -rf out terraform.tfstate* terraform.tfstate.d
+  # env-per-directory/prod keeps its state outside the root
+  case "$p" in */env-per-directory/*) rm -rf ../.state ;; esac
 }
 
 check_pulumi() {

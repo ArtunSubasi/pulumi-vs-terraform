@@ -16,6 +16,8 @@ LIVE=0
 log "Terraform / OpenTofu"
 for p in $(tf_projects) $(tofu_projects); do
   rm -rf "$p"/.terraform "$p"/terraform.tfstate* "$p"/terraform.tfstate.d "$p"/*.tfplan "$p"/out
+  # env-per-directory/prod keeps its state outside the root (../.state)
+  case "$p" in */env-per-directory/*) rm -rf "$p/../.state" ;; esac
   # Nested test fixtures / local modules may write files too
   find "$p" -type d -name out -not -path '*/node_modules/*' -prune -exec rm -rf {} +
   ok "$(rel "$p")"
