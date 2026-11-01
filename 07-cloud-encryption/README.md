@@ -12,8 +12,9 @@ key provider ignores the region in your AWS profile.
 |---|---|---|
 | Configured in | `encryption` block in the code (or `TF_ENCRYPTION`) | per stack: `pulumi stack init --secrets-provider awskms://…` |
 | Stored where | `key_provider.aws_kms…` in the state file's `meta` | `secretsprovider:` + `encryptedkey:` in `Pulumi.<stack>.yaml` |
-| What gets encrypted | the **whole** state file, plus saved plans | only **secret values**, in state and stack config |
+| What gets encrypted | the **whole** state file, plus saved plans | only **secret values**, in state, stack config and saved plans (`--save-plan`, experimental) |
 | KMS calls | `GenerateDataKey` (write), `Decrypt` (read) | `Encrypt` once at stack init, `Decrypt` per command |
+| Encrypted inputs in the repo | **no**: `.tfvars` stays plain text (use SOPS, see below) | `pulumi config set --secret` → `secure: v1:…` in the stack file |
 | Change the key | `fallback` block: read with old, write with new | `pulumi stack change-secrets-provider` |
 | Terraform | — (only backend-side, e.g. S3 SSE-KMS) | |
 
@@ -99,6 +100,21 @@ Pulumi re-encrypts the stack config and state with the new key.
 - **Deleting the key deletes the state**, in effect: anything encrypted with it can't be
   read anymore. KMS enforces a 7–30 day waiting period, so a mistake can still be undone
   (`aws kms cancel-key-deletion`).
+- **Committing secrets: Pulumi yes, OpenTofu no.** Pulumi encrypts *inputs* too: a
+  `secure:` value in `Pulumi.prod.yaml` can be committed, and a review shows *that*
+  `apiToken` changed in prod without showing the value. OpenTofu's encryption covers only
+  what OpenTofu writes itself: state, saved plans, and `terraform_remote_state` reads.
+  For inputs, teams add SOPS (same KMS key) or read from a secrets store at run time:
+  ```hcl
+  data "sops_file" "secrets" {                 # provider carlpett/sops
+    source_file = "secrets.prod.enc.yaml"      # committed: keys readable, values encrypted
+  }
+  # data.sops_file.secrets.data["api_token"]   → lands in state, which tofu encrypts
+  ```
+  Or `sops exec-env secrets.prod.enc.yaml 'tofu apply'` (as `TF_VAR_…`, no provider), or
+  `ephemeral "aws_secretsmanager_secret_version"` (1.11, never stored). Side effect of
+  whole-file encryption: an encrypted `terraform.tfstate` *could* be committed without
+  leaking anything. It's still a bad idea: no locking, merge conflicts.
 - **Terraform:** no client-side encryption. Use an S3 backend with SSE-KMS and a tight
   bucket policy. That protects the state at rest in S3, but not a local copy or `terraform
   state pull`.
